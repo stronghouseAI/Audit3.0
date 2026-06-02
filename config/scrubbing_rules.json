@@ -1,0 +1,8 @@
+{
+  "regex_patterns": {
+    "SSN": "\\b\\d{3}-\\d{2}-\\d{4}\\b",
+    "EMAIL": "\\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Z|a-z]{2,}\\b",
+    "UK_PHONE": "(?:\\+44|0)7\\d{9}\\b"
+  },
+  "agent_names_fallback": ["Agent0034", "Alice", "Bob"]
+}

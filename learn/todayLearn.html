@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Audit 3.0 Upstream Agent Orchestration: Session Breakdown</title>
+    <style>
+        :root {
+            --bg-main: #0f172a;
+            --bg-panel: #1e293b;
+            --bg-card: #334155;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --accent-success: #10b981;
+            --accent-error: #f43f5e;
+            --accent-info: #38bdf8;
+            --accent-warn: #fbbf24;
+            --border-color: #475569;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: var(--bg-main);
+            color: var(--text-main);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            line-height: 1.6;
+            padding: 2rem 1rem;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 3rem;
+            border-bottom: 2px solid var(--border-color);
+            padding-bottom: 1.5rem;
+        }
+
+        header h1 {
+            font-size: 2.5rem;
+            color: var(--text-main);
+            margin-bottom: 0.5rem;
+        }
+
+        header p {
+            color: var(--text-muted);
+            font-size: 1.1rem;
+        }
+
+        .badge-container {
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
+            margin-top: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .badge {
+            background-color: var(--bg-panel);
+            border: 1px solid var(--border-color);
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+
+        .badge.success { color: var(--accent-success); border-color: var(--accent-success); }
+        .badge.info { color: var(--accent-info); border-color: var(--accent-info); }
+
+        h2 {
+            font-size: 1.75rem;
+            margin: 2rem 0 1rem;
+            color: var(--accent-info);
+            border-left: 4px solid var(--accent-info);
+            padding-left: 0.75rem;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .card {
+            background-color: var(--bg-panel);
+            border: 1px solid var(--border-color);
+            border-radius: 0.5rem;
+            padding: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .card-header {
+            font-size: 1.25rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+            color: var(--text-main);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .card-section {
+            margin-bottom: 0.75rem;
+        }
+
+        .card-section-title {
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-muted);
+            font-weight: bold;
+        }
+
+        .card-section-body {
+            font-size: 0.95rem;
+            color: var(--text-main);
+        }
+
+        .tradeoff-box {
+            background-color: rgba(56, 189, 248, 0.05);
+            border-left: 4px solid var(--accent-warn);
+            padding: 1rem;
+            margin: 1.5rem 0;
+            border-radius: 0 0.5rem 0.5rem 0;
+        }
+
+        .tradeoff-title {
+            font-weight: bold;
+            color: var(--accent-warn);
+            margin-bottom: 0.25rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .deep-dive {
+            background-color: var(--bg-panel);
+            border: 1px solid var(--border-color);
+            border-radius: 0.5rem;
+            padding: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .deep-dive p {
+            margin-bottom: 1rem;
+        }
+
+        .deep-dive p:last-child {
+            margin-bottom: 0;
+        }
+
+        ul {
+            list-style-type: none;
+        }
+
+        .guardrail-list li {
+            background-color: rgba(244, 63, 94, 0.05);
+            border: 1px solid rgba(244, 63, 94, 0.2);
+            border-left: 4px solid var(--accent-error);
+            padding: 1rem;
+            border-radius: 0.25rem;
+            margin-bottom: 0.75rem;
+        }
+
+        .guardrail-title {
+            font-weight: bold;
+            color: var(--accent-error);
+            margin-bottom: 0.25rem;
+        }
+
+        code {
+            font-family: SFMono-Regular, Consolas, "Liberation Mono", Menlo, monospace;
+            background-color: rgba(0, 0, 0, 0.3);
+            padding: 0.1rem 0.3rem;
+            border-radius: 0.25rem;
+            font-size: 0.9em;
+            color: #f472b6;
+        }
+
+        @media (max-width: 768px) {
+            .grid {
+                grid-template-columns: 1fr;
+            }
+            body {
+                padding: 1rem 0.5rem;
+            }
+            header h1 {
+                font-size: 2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Audit 3.0 Engineering Sprint Summary</h1>
+            <p>Upstream Multi-Agent Interception Framework & Verification Integration</p>
+            <div class="badge-container">
+                <div class="badge success">✓ Test Suite: 5/5 Green</div>
+                <div class="badge info">VPC Air-Gapped Compliant</div>
+                <div class="badge">Python 3.13</div>
+                <div class="badge">Typer + Pytest Integration</div>
+            </div>
+        </header>
+
+        <h2>1. Executive Sprint Summary</h2>
+        <div class="deep-dive">
+            <p><strong>Initial State:</strong> The system contained a robust, untouched, production-grade core audit engine (<code>src/qa_auditor.py</code>) driven by a terminal interface handler (<code>src/cli.py</code>). Transcripts were mapped straight to inference configurations without deterministic compliance evaluations, data leakage boundaries, or local regional control checks.</p>
+            <p><strong>Target Architecture State:</strong> Successfully engineered and layered an automated <strong>Upstream Multi-Agent Preprocessing Framework</strong> immediately ahead of the untouched core engine. Raw incoming transcript text data is now intercepted locally, run through dual-stage decoupled validation layers (Scrubbing -> Structural Regulatory Enrichment), routed cleanly through an auto-erasing disk scratchpad, and evaluated via a fully updated CLI interface featuring 100% test path discovery coverage.</p>
+        </div>
+
+        <h2>2. Step-by-Step Evolution & Technical 'Why'</h2>
+        <div class="grid">
+            <div class="card">
+                <div>
+                    <div class="card-header">🛡️ Agent A: Local PII Scrubber</div>
+                    <div class="card-section">
+                        <div class="card-section-title">The Action</div>
+                        <div class="card-section-body">Created <code>src/upstream/agent_a_scrubber.py</code> using high-speed, localized, deterministic regular expressions paired with static fallback dictionaries for name-masking. Added structural error isolation blocks via defensive <code>FileNotFoundError</code> checks.</div>
+                    </div>
+                    <div class="card-section">
+                        <div class="card-section-title">The System Impact</div>
+                        <div class="card-section-body">Destructively and permanently overwrites matching PII string structures (SSNs, emails, explicitly cataloged user identities) with deterministic redaction tokens (e.g., <code>[SSN_REDACTED]</code>) directly within the local runtime stack.</div>
+                    </div>
+                </div>
+                <div class="card-section" style="margin-top: 1rem;">
+                    <div class="card-section-title">The Core Justification</div>
+                    <div class="card-section-body">Maintains strict compliance boundaries. Processing must happen completely on-premises or within your isolated security VPC boundary to ensure no raw identifiable records ever drop into external cloud inference endpoints.</div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div>
+                    <div class="card-header">🗺️ Agent B: Context Injector</div>
+                    <div class="card-section">
+                        <div class="card-section-title">The Action</div>
+                        <div class="card-section-body">Created <code>src/upstream/agent_b_injector.py</code> to interpret processing intent metadata values, map targeted region keys to local markdown compliance documents, and structure them using a standardized text payload formatting frame.</div>
+                    </div>
+                    <div class="card-section">
+                        <div class="card-section-title">The System Impact</div>
+                        <div class="card-section-body">Stitches structural markdown compliance text blocks directly above the sanitized data payload. Transforms standard flat transcript feeds into comprehensive, context-heavy prompts containing explicit evaluation criteria.</div>
+                    </div>
+                </div>
+                <div class="card-section" style="margin-top: 1rem;">
+                    <div class="card-section-title">The Core Justification</div>
+                    <div class="card-section-body">Decouples core engine rules from volatile operational environments. Rather than hardcoding compliance configurations directly into your core LLM prompt layout, rules are loaded dynamically from file storage, preserving the core engine's immutability.</div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div>
+                    <div class="card-header">⚙️ Pipeline Linkage & CLI Refactor</div>
+                    <div class="card-section">
+                        <div class="card-section-title">The Action</div>
+                        <div class="card-section-body">Built <code>src/upstream/orchestrator.py</code> with absolute module imports and wired it into <code>src/cli.py</code> using a transient, hidden runtime scratchpad layout managed by a highly strict <code>try...finally</code> pipeline structure. Added a new <code>--region</code> parameter flag.</div>
+                    </div>
+                    <div class="card-section">
+                        <div class="card-section-title">The System Impact</div>
+                        <div class="card-section-body">Intercepts batch directories, streams items through Agent A then Agent B, saves temporary files inside <code>.preprocessed_transcripts/</code>, executes the native async audit routine, and instantly enforces secure disk cleanup.</div>
+                    </div>
+                </div>
+                <div class="card-section" style="margin-top: 1rem;">
+                    <div class="card-section-title">The Core Justification</div>
+                    <div class="card-section-body">Guarantees zero architectural leakage. The core audit engine can run unmodified on folders, and the transient scratchpad directory setup avoids polluting your system with duplicate intermediate states or long-term plaintext data logs.</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="tradeoff-box">
+            <div class="tradeoff-title">⚠️ Architectural Trade-Off: File-Based Scratchpad vs. In-Memory Virtual Streams</div>
+            <p>During integration, we chose to write preprocessed files to a transient file-system directory (<code>.preprocessed_transcripts/</code>) rather than passing in-memory virtual string abstractions directly to the core engine. While in-memory streams completely remove disk-write performance overhead, this file-system approach allowed us to hook our pipeline up directly to your untouched <code>run_audit_engine(target_dir=...)</code> architecture without rewriting its file collection loops, perfectly maintaining the core engine's immutability at the cost of transient disk I/O.</p>
+        </div>
+
+        <h2>3. The 'Under-The-Hood' Deep Dive: Test Pathing & Package Isolation Resolution</h2>
+        <div class="deep-dive">
+            <p>The trickiest technical blocker of this sprint lay in resolving pathing scopes during test execution. When <code>pytest</code> runs at the project root directory, it looks down into the folders to construct its runtime package mapping tree. In contrast, running execution tasks from within the <code>src/</code> folder directly causes python's module interpreter to track paths completely differently.</p>
+            <p>Initially, relative multi-agent path calls (like <code>from upstream.orchestrator import ...</code>) inside your source scripts triggered fatal <code>ModuleNotFoundError</code> states under root testing discovery, while absolute package anchors crashed localized execution loops inside the CLI layer. We completely resolved this module tracking failure by anchoring all sub-system cross-calls to fully absolute, top-level package paths (such as <code>from src.upstream.agent_a_scrubber import ...</code>).</p>
+            <p>Combined with forcing explicit path evaluation at runtime via <code>python -m pytest tests/</code>, we ensured the system can perfectly map, isolate, and test every single architectural module—whether validating an independent scrubber or sweeping across the entire CLI interface layout.</p>
+        </div>
+
+        <h2>4. Architectural Guardrails for Next Session</h2>
+        <ul class="guardrail-list">
+            <li>
+                <div class="guardrail-title">1. Absolute Root Execution Requirement</div>
+                <div>All runtime terminal commands and automated scripts must be executed from the project root directory (<code>~/Documents/googleDev/Audit3.0</code>) using the <code>python -m</code> directory module lookup wrapper to prevent path resolution and test asset discovery errors.</div>
+            </li>
+            <li>
+                <div class="guardrail-title">2. Strict Immutability of Core Auditor Layers</div>
+                <div>Any changes to compliance regulations, masking parameters, or verification rules must happen purely inside the <code>config/</code> assets or <code>src/upstream/</code> middleware. The production-facing core engine (<code>src/qa_auditor.py</code>) must remain completely untouched.</div>
+            </li>
+            <li>
+                <div class="guardrail-title">3. Mandatory Payload Structural Output Design</div>
+                <div>Any future middleware agent added to the preprocessing sequence inside <code>orchestrator.py</code> must strictly accept a string text payload and return a transformed text payload string, preserving the plug-and-play linear workflow architecture.</div>
+            </li>
+            <li>
+                <div class="guardrail-title">4. Strict Clean Staging Constraints</div>
+                <div>Never store processing data inside the temporary execution directory <code>.preprocessed_transcripts/</code>. This workspace is highly unstable and is destroyed by design by the CLI's <code>shutil.rmtree()</code> teardown handler during both successful runs and pipeline crashes.</div>
+            </li>
+        </ul>
+    </div>
+</body>
+</html>

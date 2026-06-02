@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Project Documentation: Audit 3.0 Compliance Pipeline</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; color: #333; line-height: 1.6; padding: 40px; max-width: 900px; margin: 0 auto; }
+        h1 { color: #1a365d; border-bottom: 2px solid #e2e8f0; padding-bottom: 10px; font-size: 28px; }
+        h2 { color: #2c5282; margin-top: 30px; border-bottom: 1px solid #edf2f7; padding-bottom: 5px; font-size: 20px; }
+        h3 { color: #4a5568; font-size: 16px; }
+        code { background-color: #f7fafc; border: 1px solid #e2e8f0; padding: 2px 6px; font-family: monospace; font-size: 14px; border-radius: 4px; }
+        pre { background: #f7fafc; border: 1px solid #e2e8f0; padding: 15px; border-radius: 6px; overflow-x: auto; font-family: monospace; font-size: 13px; }
+        .grid { display: flex; gap: 20px; margin-top: 20px; }
+        .card { flex: 1; border: 1px solid #e2e8f0; padding: 15px; border-radius: 6px; background: #fff; }
+        .badge { background: #ebf8ff; color: #2b6cb0; padding: 4px 8px; font-size: 12px; font-weight: bold; border-radius: 4px; text-transform: uppercase; }
+        @media print {
+            body { padding: 0; font-size: 12pt; }
+            .no-print { display: none; }
+            h1, h2 { page-break-after: avoid; }
+            pre { page-break-inside: avoid; }
+        }
+    </style>
+</head>
+<body>
+
+    <button class="no-print" onclick="window.print()" style="float: right; padding: 10px 20px; background: #2b6cb0; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold;">🖨️ Print to PDF</button>
+
+    <h1>📋 Architectural Guide: Audit 3.0</h1>
+    <p><strong>System Blueprint:</strong> Production-ready, asynchronous Python processing engine with strict structural mapping and data persistence.</p>
+
+    <hr style="border: 0; border-top: 1px solid #e2e8f0; margin: 20px 0;" />
+
+    <h2>1. System Topography & File Structure</h2>
+    <p>The system operates entirely out of your local decoupled workspace directory, cleanly separating analytical application logic from binary data footprints:</p>
+    <pre>
+~/Documents/googleDev/Audit3.0
+├── qa_auditor.py       # Core AsyncIO batch coordinator & inference processing engine
+├── notifier.py         # Outbound Twilio WhatsApp Sandbox messaging client
+├── database.py         # Relational SQLite transaction management and tables
+├── audit_history.db    # File-based localized SQLite relational database file
+└── transcripts/        # Target ingestion directory containing multi-minute binary recordings
+    </pre>
+
+    <h2>2. Asynchronous Flow Control (The Traffic Cop)</h2>
+    <p>To safely maximize processing throughput across bulk assets without triggering network rejection codes, the coordinator applies a strict concurrency boundary:</p>
+    <pre>
+# Enforced inside qa_auditor.py via:
+semaphore = asyncio.Semaphore(2)
+
+# Flow Execution:
+# [Bulk .mp3 Queue] ──► [asyncio.Semaphore(2)] ──► Max 2 Workers active simultaneously
+    </pre>
+    <p>Because SQLite is traditionally synchronous, the data pipeline preserves core event-loop velocity by farming database writes off to background worker pools using thread isolation wrappers:</p>
+    <code>await asyncio.to_thread(save_audit_result, ...)</code>
+
+    <h2>3. The Relational Data Schema</h2>
+    <p>Data models map directly from incoming strict Pydantic structures down to explicit columns inside <code>audit_history.db</code> across two coupled tables:</p>
+    
+    <div class="grid">
+        <div class="card">
+            <span class="badge">Table: agents</span>
+            <h3>Dimension Layer</h3>
+            <ul>
+                <li><code>agent_id</code> (TEXT, PK)</li>
+                <li><code>phone_number</code> (TEXT)</li>
+                <li><code>created_at</code> (DATETIME)</li>
+            </ul>
+        </div>
+        <div class="card">
+            <span class="badge">Table: compliance_audits</span>
+            <h3>Factual Metric Layer</h3>
+            <ul>
+                <li><code>audit_id</code> (TEXT, PK)</li>
+                <li><code>agent_id</code> (FK)</li>
+                <li><code>audio_filename</code> (TEXT)</li>
+                <li><code>score</code> (INTEGER, 1-10 Bounds)</li>
+                <li><code>justification</code> (TEXT)</li>
+                <li><code>breach_detected</code> (BOOLEAN)</li>
+            </ul>
+        </div>
+    </div>
+
+    <h2>4. Quick Terminal Reference Cheat Sheet</h2>
+    <h3>Verify System Environment Configuration</h3>
+    <pre>python3 -c "import os; apps = ['GEMINI_API_KEY', 'TWILIO_ACCOUNT_SID', 'TWILIO_AUTH_TOKEN']; print({app: 'Configured ✓' if os.environ.get(app) else 'MISSING ✗' for app in apps})" </pre>
+    
+    <h3>Query Immediate Data Highlights</h3>
+    <pre>sqlite3 audit_history.db ".headers on" ".mode column" "SELECT agent_id, score, breach_detected FROM compliance_audits;"</pre>
+
+</body>
+</html>

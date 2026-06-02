@@ -1,0 +1,259 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Audit 3.0 - Architecture Learning Portfolio</title>
+    <style>
+        :root {
+            --bg-primary: #0f172a;
+            --bg-secondary: #1e293b;
+            --bg-card: #334155;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --accent-success: #10b981;
+            --accent-fail: #ef4444;
+            --accent-warning: #f59e0b;
+            --accent-info: #3b82f6;
+            --border: #475569;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-primary);
+            color: var(--text-main);
+            line-height: 1.6;
+            padding: 2rem 1rem;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 3rem;
+            border-bottom: 2px solid var(--border);
+            padding-bottom: 1.5rem;
+        }
+
+        header h1 {
+            font-size: 2.5rem;
+            color: var(--text-main);
+            margin-bottom: 0.5rem;
+        }
+
+        header p {
+            color: var(--text-muted);
+            font-size: 1.1rem;
+        }
+
+        .section-title {
+            font-size: 1.8rem;
+            margin: 2.5rem 0 1.2rem 0;
+            color: var(--text-main);
+            border-left: 4px solid var(--accent-info);
+            padding-left: 0.75rem;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .card {
+            background-color: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 0.75rem;
+            padding: 1.5rem;
+            transition: transform 0.2s;
+        }
+
+        .card h3 {
+            font-size: 1.3rem;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .card-meta {
+            font-size: 0.85rem;
+            margin-bottom: 0.75rem;
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.25rem;
+            display: inline-block;
+            font-weight: bold;
+        }
+
+        .meta-action { background-color: rgba(59, 130, 246, 0.2); color: #60a5fa; }
+        .meta-impact { background-color: rgba(16, 185, 129, 0.2); color: #34d399; }
+        .meta-justification { background-color: rgba(245, 158, 11, 0.2); color: #fbbf24; }
+
+        .card p {
+            font-size: 0.95rem;
+            color: var(--text-muted);
+            margin-bottom: 1rem;
+        }
+
+        .card p strong {
+            color: var(--text-main);
+        }
+
+        .tradeoff {
+            background-color: rgba(245, 158, 11, 0.05);
+            border-left: 4px solid var(--accent-warning);
+            padding: 1rem;
+            margin: 1.5rem 0;
+            border-radius: 0 0.5rem 0.5rem 0;
+        }
+
+        .tradeoff title {
+            display: block;
+            font-weight: bold;
+            color: var(--accent-warning);
+            margin-bottom: 0.25rem;
+        }
+
+        .deep-dive {
+            background-color: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 0.75rem;
+            padding: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .deep-dive p {
+            margin-bottom: 1rem;
+            color: var(--text-muted);
+        }
+
+        .deep-dive code {
+            background-color: var(--bg-primary);
+            padding: 0.2rem 0.4rem;
+            border-radius: 0.25rem;
+            font-family: monospace;
+            color: #f43f5e;
+            font-size: 0.95rem;
+        }
+
+        .guardrail-list {
+            list-style-type: none;
+        }
+
+        .guardrail-list li {
+            background-color: var(--bg-secondary);
+            border: 1px solid var(--border);
+            padding: 1rem 1.25rem;
+            margin-bottom: 0.75rem;
+            border-radius: 0.5rem;
+            display: flex;
+            align-items: flex-start;
+            gap: 0.75rem;
+        }
+
+        .guardrail-list li::before {
+            content: "🛡️";
+        }
+
+        .guardrail-list li strong {
+            color: var(--accent-success);
+        }
+
+        @media (max-width: 640px) {
+            body { padding: 1rem 0.5rem; }
+            header h1 { font-size: 2rem; }
+            .grid { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Audit 3.0 Engineering Portfolio</h1>
+            <p>Sprint Review & Architectural Hardening Baseline Session</p>
+        </header>
+
+        <h2 class="section-title">1. Executive Sprint Summary</h2>
+        <div class="grid">
+            <div class="card">
+                <h3>⏮️ System Entry State</h3>
+                <p>The codebase was relying on a corrupted, local 1-line text error file hidden under a <code>.gguf</code> extension. The runtime configurations were configured for unthrottled maximum GPU usage (<code>n_gpu_layers=-1</code>) inside an active execution worker loop, resulting in critical VRAM overflow thrashing and total system kernel locks under asynchronous processing.</p>
+            </div>
+            <div class="card">
+                <h3>⏭️ System Exit State</h3>
+                <p>The system has been completely hardened. A true, verified 5.76GB Gemma-2 model binary is deployed safely. The core <strong>Enterprise Pro</strong> batch audit routine is completely isolated and untampered, running perfectly. A network-hardened dev assistant layer (<code>ask</code> and <code>chat</code> commands) has been established with built-in client timeout properties to protect your terminal from drops on weak Wi-Fi networks.</p>
+            </div>
+        </div>
+
+        <h2 class="section-title">2. Step-by-Step Evolution & Technical 'Why'</h2>
+        <div class="grid">
+            <div class="card">
+                <span class="card-meta meta-action">Action</span>
+                <p>Swapped deprecated <code>huggingface-cli download</code> for modern <code>hf download</code> and forced raw storage location streaming parameters via <code>--local-dir</code>.</p>
+                <span class="card-meta meta-impact">System Impact</span>
+                <p>Replaced a broken 1-byte text error response page with a genuine 5.76GB neural network weight layer collection map matching standard Linux file signatures.</p>
+                <span class="card-meta meta-justification">Core Justification</span>
+                <p>Bypassed local system memory loaders crashing on unreadable file schemas. <code>llama.cpp</code> requires specific layout allocations to initialize safely.</p>
+            </div>
+
+            <div class="card">
+                <span class="card-meta meta-action">Action</span>
+                <p>Configured <code>n_gpu_layers=20</code>, <code>n_ctx=2048</code>, and capped processing cycles down to <code>n_threads=4</code>.</p>
+                <span class="card-meta meta-impact">System Impact</span>
+                <p>Split model processing weights. 20 layers load onto your dedicated 6GB RTX 4060 VRAM, leaving breathing room for your Linux UI, while the remaining blocks sit inside system RAM.</p>
+                <span class="card-meta meta-justification">Core Justification</span>
+                <p>Prevents destructive memory thrashing. Setting unconstrained layers forces Linux to page data across slow channels, completely freezing hardware interfaces.</p>
+            </div>
+
+            <div class="card">
+                <span class="card-meta meta-action">Action</span>
+                <p>Enforced a strict <code>asyncio.Semaphore(1)</code> serialization constraint specifically when the <code>--local</code> argument flag is raised.</p>
+                <span class="card-meta meta-impact">System Impact</span>
+                <p>Intercepts the processing loop. Cloud routines process files concurrently at high velocity, but local runs process files sequentially, one-by-one.</p>
+                <span class="card-meta meta-justification">Core Justification</span>
+                <p>Thread Safety. The underlying C++ execution graphs inside <code>llama_cpp</code> are thread-unsafe; simultaneous shared queries cause instant memory pointer collisions and <strong>Segmentation Faults</strong>.</p>
+            </div>
+
+            <div class="card">
+                <span class="card-meta meta-action">Action</span>
+                <p>Upgraded the <code>src/cli.py</code> interface using <code>typer</code>, adding <code>ask</code> and <code>chat</code> subcommands using <code>HttpClientConfig</code> and <code>HttpOptions(timeout=15.0)</code>.</p>
+                <span class="card-meta meta-impact">System Impact</span>
+                <p>Exposes an on-demand, streaming conversational connection to high-tier reasoning engines (<code>gemini-2.5-pro</code>) completely isolated from your automated work data sweeps.</p>
+                <span class="card-meta meta-justification">Core Justification</span>
+                <p>Removes browser dependency. The 15-second client timeout ensures that if your local Wi-Fi drops packets, the terminal catches the error gracefully instead of hanging indefinitely.</p>
+            </div>
+        </div>
+
+        <div class="tradeoff">
+            <title>⚠️ Architectural Trade-Off: Local Processing Speed vs. Cost Efficiency</title>
+            <p>During local offline execution, your hardware dropped to processing <strong>3.49 tokens per second</strong>. While this provides 100% data privacy and zero API costs, it requires roughly 1.5 minutes of continuous high-power hardware rendering per file. The cloud path represents a massive boost in velocity for heavy business operations while you are working on a slower network setup.</p>
+        </div>
+
+        <h2 class="section-title">3. The 'Under-the-Hood' Deep Dive: Prompt Token Inversion</h2>
+        <div class="deep-dive">
+            <p>The most fascinating technical challenge handled this session was resolving the <code>System role not supported</code> error thrown by Google's native <strong>Gemma-2 architecture</strong> tokenizer logic.</p>
+            <p>Standard model configurations separate prompts into distinct structural abstractions: <code>system</code> instructions (global rules) and <code>user</code> turns (the dynamic data). However, Gemma's compiled model metadata contains a strict Jinja layout filter rule: <code>{% if messages[0]['role'] == 'system' %}{{ raise_exception('System role not supported') }}{% endif %}</code>.</p>
+            <p>To bypass this hard structural boundary without breaking our application layer, we implemented an architectural layout wrapper. The application intercepts local runs, completely strips out the system message dictionary object, and merges your deep compliance audit rules right into the <code>user</code> content string payload block as an explicit block header. This satisfies the model's strict requirement for alternating conversation turns while successfully enforcing identical quality control bounds over the local model's generation window.</p>
+        </div>
+
+        <h2 class="section-title">4. Architectural Guardrails for Next Session</h2>
+        <ul class="guardrail-list">
+            <li><strong>The Enterprise Audit Rule:</strong> Never modify or edit the core logic inside the main <code>run_audit_engine</code> pipeline block without explicitly keeping its structured output mappings intact for production security.</li>
+            <li><strong>Model Concurrency Limits:</strong> Never initialize a local <code>Llama</code> instance inside concurrent worker tasks or allow multiple async tasks to call it simultaneously. Local execution blocks must always be choked to a maximum concurrency of 1.</li>
+            <li><strong>Indentation Formatting Controls:</strong> Tabs are completely banned from edits inside this repository. All indentation configurations must use strict 4-space increments to keep the python interpreter completely happy.</li>
+            <li><strong>API Client Modality:</strong> When interacting with conversational stream handles via the updated GenAI SDK, use <code>chat.send_message_stream(user_input)</code> to maintain stable, progressive text rendering.</li>
+        </ul>
+    </div>
+</body>
+html>
