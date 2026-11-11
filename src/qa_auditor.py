@@ -1,7 +1,6 @@
 import os
 import csv
 import glob
-import sqlite3
 import asyncio
 import json
 import logging
@@ -11,8 +10,7 @@ from google import genai
 from google.genai import types
 from google.genai.errors import APIError
 from pydantic import BaseModel, Field, field_validator
-from database import save_audit_result, DB_PATH
-from notifier import send_batch_whatsapp_summary
+from database import save_audit_result
 
 try:
     from llama_cpp import Llama
@@ -24,6 +22,16 @@ except ImportError:
 # ==========================================
 LOCAL_MODEL_PATH = Path(__file__).parent.parent.parent / "models" / "supergemma4-26b-q4.gguf"
 PASS_SCORE_THRESHOLD = 8
+SCRIPT_RULES_PATH = Path(__file__).resolve().parent.parent / "config" / "script_rules.json"
+
+
+def load_script_rules(path: Path = SCRIPT_RULES_PATH) -> dict:
+    """Load the agent-script compliance checklist from config/script_rules.json."""
+    with open(path, "r", encoding="utf-8") as f:
+        data = json.load(f)
+    if not data.get("rules"):
+        raise ValueError(f"No rules defined in {path}")
+    return data
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
@@ -70,6 +78,10 @@ class QAAuditReport(BaseModel):
     compliance_checklist: List[ChecklistItem]
     phrase_analysis: PhraseAnalysis
     evaluation: CompetenceEvaluation
+    transcript: str = Field(
+        default="",
+        description="Full verbatim transcript of the call, one line per turn, prefixed 'Agent:' or 'Customer:'.",
+    )
 
     # Database metadata fields — populated after LLM response
     filename: Optional[str] = None
@@ -179,6 +191,10 @@ def _export_local_transcript_txt(input_folder: str, filename: str, agent_id: str
         
         txt_filename = output_subfolder / f"{Path(filename).stem}.txt"
         
+        if report.transcript:
+            transcript_file = output_subfolder / f"{Path(filename).stem}_transcript.txt"
+            transcript_file.write_text(report.transcript, encoding="utf-8")
+
         with open(txt_filename, "w", encoding="utf-8") as f:
             f.write(f"=========================================================================\n")
             f.write(f"⚖️ CORPORATE AUDIT VERBOSE RECORD FOR: {filename}\n")
@@ -209,6 +225,9 @@ def _export_local_transcript_txt(input_folder: str, filename: str, agent_id: str
             else:
                 f.write("• No professional adjustments required for this file.\n")
                 
+            if report.transcript:
+                f.write(f"\n📞 FULL CALL TRANSCRIPT:\n{report.transcript}\n")
+
             f.write(f"\n=========================================================================\n")
             f.write(f"END OF DATA RECORD\n")
             
@@ -265,7 +284,7 @@ async def audit_single_file_with_retry(
                         raise ValueError(f"Gemini file upload failed for: {filename}")
                     media_context = [
                         audio_file,
-                        "Perform a complete linguistic compliance audit on this audio.",
+                        "Transcribe this call in full (populate the transcript field), then perform a complete linguistic compliance audit on it.",
                     ]
                     payload_content = None
 
@@ -323,6 +342,11 @@ async def audit_single_file_with_retry(
                     "score": report.evaluation.score,
                     "breaches": [v.requirement for v in report.detected_violations],
                     "agent_id": agent_id,
+                    "phone_number": phone_number,
+                    "call_timestamp": call_timestamp,
+                    "passed": report.passed,
+                    "summary": report.evaluation.justification,
+                    "improvements": report.evaluation.improvement_suggestions,
                 }
 
             except APIError as exc:
@@ -337,7 +361,8 @@ async def audit_single_file_with_retry(
                 error_report = _make_error_report(filename, agent_id, reason)
                 async with db_write_lock:
                     await asyncio.to_thread(save_audit_result, error_report, phone_number)
-                return {"status": "FAILED", "filename": filename, "reason": reason}
+                return {"status": "FAILED", "filename": filename, "reason": reason,
+                        "agent_id": agent_id, "phone_number": phone_number, "call_timestamp": call_timestamp}
 
             except Exception as exc:
                 await _safe_delete_file(client, audio_file)
@@ -346,7 +371,8 @@ async def audit_single_file_with_retry(
                 error_report = _make_error_report(filename, agent_id, reason)
                 async with db_write_lock:
                     await asyncio.to_thread(save_audit_result, error_report, phone_number)
-                return {"status": "FAILED", "filename": filename, "reason": reason}
+                return {"status": "FAILED", "filename": filename, "reason": reason,
+                        "agent_id": agent_id, "phone_number": phone_number, "call_timestamp": call_timestamp}
 
 
 # ==========================================
@@ -411,18 +437,18 @@ async def main(
         use_local, region, len(target_files), max_concurrency,
     )
 
+    script = load_script_rules()
+    checklist = "\n".join(f"    {i}. {rule}" for i, rule in enumerate(script["rules"], 1))
+    logger.info("Auditing against script: %s (%d rules)", script.get("script_name", "unnamed"), len(script["rules"]))
+
     SYSTEM_INSTRUCTION = f"""
     You are an Expert Quality Assurance Auditor specialising in linguistic analysis and compliance.
     Audit the provided content against regional regulatory rules [Target Zone: {region}].
 
-    Required compliance checklist:
-    1. Introduction: Agent must identify as "My Reclaim".
-    2. Prior Claim Check: Must confirm the client hasn't submitted a prior claim.
-    3. Fee Disclosure: Must mention fees from 15%+VAT to 30%+VAT (18–36% VAT-inclusive) on a no-win-no-fee basis.
-    4. Future Authority: Must ask for authority to include agreements surfacing after the call and get an explicit 'Yes'.
-    5. Right to DIY: Must inform the customer they do not need a claims management company or law firm.
-    6. Multiple Claims Warning: Must warn that multiple simultaneous claims could result in paying multiple firms.
+    Required compliance checklist (one checklist item per rule, using the rule name as the requirement):
+{checklist}
 
+    If the input is audio, include a full verbatim transcript in the transcript field.
     CRITICAL: The evaluation score must be an integer from 1 to 10. Never use a 100-point scale.
     """
 
@@ -448,48 +474,31 @@ async def main(
                 total_breaches += 1
                 low_performing_agents.append(f"{res['agent_id']} (Score: {res['score']})")
 
-    if total_breaches > 0:
-        logger.info("%d compliance breach(es) detected. Sending notification…", total_breaches)
-        summary_payload = {
-            "total_files": total_audited,
-            "breach_count": total_breaches,
-            "flagged_teams": ", ".join(low_performing_agents[:5]),
-        }
-        try:
-            send_batch_whatsapp_summary(summary_payload)
-        except Exception as exc:
-            logger.warning("Failed to send WhatsApp summary: %s", exc)
+    logger.info("%d file(s) audited, %d below pass threshold: %s",
+                total_audited, total_breaches, ", ".join(low_performing_agents) or "none")
 
     if auto_export:
-        logger.info("Exporting current batch audit CSV…")
-        try:
-            # Secure serial access hook for extraction
-            async with db_write_lock:
-                with sqlite3.connect(DB_PATH) as conn:
-                    cursor = conn.cursor()
-                    placeholders = ",".join(["?"] * len(target_files))
-                    query = f"""
-                        SELECT c.agent_id, a.phone_number, c.audio_filename,
-                               c.score, c.justification, c.breach_detected
-                        FROM compliance_audits c
-                        LEFT JOIN agents a ON c.agent_id = a.agent_id
-                        WHERE c.audio_filename IN ({placeholders});
-                    """
-                    cursor.execute(query, target_files)
-                    rows = cursor.fetchall()
-
-            csv_filename = "full_batch_audit_report.csv"
-            headers = ["Agent ID", "Phone Number", "Audio Filename", "Score (1-10)", "Justification", "Breach Flagged"]
-            with open(csv_filename, mode="w", newline="", encoding="utf-8") as csv_file:
-                writer = csv.writer(csv_file)
-                writer.writerow(headers)
-                writer.writerows(rows)
-
-            logger.info("CSV batch export saved with %d records: %s", len(rows), csv_filename)
-
-        except Exception as exc:
-            logger.warning("CSV export failed: %s", exc)
-
+        csv_path = Path(input_folder) / "audit_outputs" / "full_batch_audit_report.csv"
+        csv_path.parent.mkdir(parents=True, exist_ok=True)
+        headers = ["Agent ID", "Phone Number", "Call Timestamp", "Audio Filename", "Status",
+                   "Score (1-10)", "Result", "Failed Requirements", "Summary", "Improvements"]
+        with open(csv_path, mode="w", newline="", encoding="utf-8") as csv_file:
+            writer = csv.writer(csv_file)
+            writer.writerow(headers)
+            for res in results:
+                if not isinstance(res, dict):
+                    continue
+                ok = res.get("status") == "SUCCESS"
+                writer.writerow([
+                    res.get("agent_id", ""), res.get("phone_number", ""), res.get("call_timestamp", ""),
+                    res.get("filename", ""), res.get("status", ""),
+                    res.get("score", "") if ok else "",
+                    ("PASS" if res.get("passed") else "FAIL") if ok else "ERROR",
+                    "; ".join(res.get("breaches", [])),
+                    res.get("summary", "") if ok else res.get("reason", ""),
+                    "; ".join(res.get("improvements", [])),
+                ])
+        logger.info("CSV batch report saved: %s", csv_path)
 
 if __name__ == "__main__":
     asyncio.run(main())

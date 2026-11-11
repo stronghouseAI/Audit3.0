@@ -1,0 +1,13 @@
+{
+  "script_name": "Outbound Pitch with Vehicle REG (My Reclaim / Law Room)",
+  "rules": [
+    "Introduction: Agent must give their name and identify as calling from \"My Reclaim\".",
+    "Purpose of Call: Must explain the call relates to the FCA's car finance redress scheme / a potential mis-sold car finance claim.",
+    "Prior Claim Check: Must ask whether the customer has already received money back for a PCP claim or signed up to receive money back from the FCA scheme.",
+    "No Win No Fee (word for word): Must state \"Law Room works on a no win no fee basis\". If the customer asks about fees, the agent must say 15-30% plus VAT; any other fee figure is a FAIL.",
+    "Right to DIY (word for word): Must read the Law Room statement that the customer does not need to use a claims management company or law firm to claim, and ask \"are you happy for us to do this for you?\" receiving a yes or positive answer.",
+    "Law Room Contact Notice: Must tell the customer that Law Room may reach out in the coming days with updates or a quick welcome call.",
+    "Multiple Claims Warning (word for word): Must warn that submitting multiple claims could mean paying multiple firms' fees and ending up with nothing.",
+    "Questions and Close: Must ask if the customer has any questions and state that Law Room will be in touch via calls and email."
+  ]
+}

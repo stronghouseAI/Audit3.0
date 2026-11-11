@@ -31,7 +31,7 @@ audit sweep --dir <PATH> [OPTIONS]
 | `--concurrency <INT>` | `-c` | `2` | Max simultaneous async cloud processing tasks. Ignored (forced to `1`) when `--local` is active. |
 | `--region <STR>` | `-r` | `UK` | Regulatory compliance ruleset to apply. Accepted values: `UK`, `US`, `EU`. |
 | `--local` / *(flag)* | `-l` | `False` | Run fully offline using the local GGUF model. Disables cloud API calls and enforces sequential processing. |
-| `--csv` / `--no-csv` | — | `--csv` | Export `full_batch_audit_report.csv` to the project root on completion. Pass `--no-csv` to skip. |
+| `--csv` / `--no-csv` | — | `--csv` | Export `full_batch_audit_report.csv` into `<dir>/audit_outputs/` on completion. Pass `--no-csv` to skip. |
 | `--help` | — | — | Show help and exit. |
 
 ### Examples
@@ -56,8 +56,9 @@ audit sweep --dir /home/lippy/Documents/googleDev/Audit3.0/transcripts --concurr
 ### Output
 
 - Audit results are written to `audit_history.db` (SQLite).
-- If `--csv` is active, a `full_batch_audit_report.csv` is saved to the project root.
-- If compliance breaches are detected, a WhatsApp summary is dispatched via Twilio.
+- If `--csv` is active, `full_batch_audit_report.csv` is saved in `<dir>/audit_outputs/`.
+- Per-call reports and MP3 transcripts are written to `<dir>/audit_outputs/`.
+- Checklist rules are loaded from `config/script_rules.json`.
 
 ---
 
@@ -117,5 +118,3 @@ Type `exit` or `quit` to end the session.
 | Variable | Required By | Description |
 |----------|-------------|-------------|
 | `GEMINI_API_KEY` | `sweep`, `ask`, `chat` (cloud mode) | Google Gemini API key for cloud inference. |
-| `TWILIO_ACCOUNT_SID` | `sweep` | Twilio account SID for WhatsApp breach notifications. |
-| `TWILIO_AUTH_TOKEN` | `sweep` | Twilio auth token for WhatsApp breach notifications. |

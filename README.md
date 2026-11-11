@@ -1,6 +1,6 @@
 # Asynchronous Compliance Audit Pipeline (Audit 3.0)
 
-An enterprise-grade, asynchronous Python ETL pipeline designed to ingest bulk audio compliance files, evaluate them using the Gemini API structured outputs, and instantly dispatch high-priority alerts to stakeholders via Twilio WhatsApp.
+An enterprise-grade, asynchronous Python ETL pipeline designed to ingest bulk audio compliance files, evaluate them using the Gemini API structured outputs transcribe each call, and export per-call audit reports plus a batch CSV.
 
 ## 🏗️ System Architecture
 
@@ -16,13 +16,15 @@ To eliminate data scaling anomalies (such as hallucinated percentage bounds or f
 * **Constraint Enforcement:** Strict 1–10 integer data structures.
 * **Data Guarantee:** Invalid or malformed response formats are caught at the edge before hitting any alerting or tracking layers.
 
-### 3. Asynchronous Live-Alert Triggers
-When an agent score drops below the defined threshold (< 8/10), the pipeline bypasses standard logging queues and hands off execution to a custom `notifier.py` module. This module hooks into the live Twilio WhatsApp session window, pushing free-form, markdown-formatted alerts straight to mobile devices for immediate human-in-the-loop intervention.
+### 3. Editable Script Rules
+The compliance checklist lives in `config/script_rules.json`. When the agent script changes, edit the `rules` list there; no code changes needed.
+
+### 4. Outputs
+For every call, `<dir>/audit_outputs/` gets a full audit report (`<name>.txt`) and, for MP3s, the full transcript (`<name>_transcript.txt`). A batch summary is written to `<dir>/audit_outputs/full_batch_audit_report.csv`.
 
 ## 🛠️ Tech Stack & Environment
 
 * **Runtime:** Python 3.10+ / `asyncio` core
 * **Inference Engine:** Google Gemini API (Paid Tier)
 * **Data Validation:** Pydantic v2
-* **Notification Layer:** Twilio WhatsApp Gateway API
 * **Host Environment:** Ubuntu Linux (Targeted for x86_64 architecture)
