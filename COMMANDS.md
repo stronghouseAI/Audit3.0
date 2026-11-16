@@ -64,7 +64,7 @@ audit sweep --dir /home/lippy/Documents/googleDev/Audit3.0/transcripts --concurr
 
 ## `audit ask`
 
-Send a one-shot question to Gemini 2.5 Flash directly from the terminal.
+Send a one-shot question to Gemini (Flash) directly from the terminal.
 
 ```
 audit ask "<QUESTION>"
@@ -118,3 +118,4 @@ Type `exit` or `quit` to end the session.
 | Variable | Required By | Description |
 |----------|-------------|-------------|
 | `GEMINI_API_KEY` | `sweep`, `ask`, `chat` (cloud mode) | Google Gemini API key for cloud inference. |
+| `GEMINI_MODEL` | `sweep`, `ask` (optional) | Gemini model name. Defaults to `gemini-flash-latest`. |

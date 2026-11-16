@@ -22,6 +22,7 @@ except ImportError:
 # ==========================================
 LOCAL_MODEL_PATH = Path(__file__).parent.parent.parent / "models" / "supergemma4-26b-q4.gguf"
 PASS_SCORE_THRESHOLD = 8
+GEMINI_MODEL = os.environ.get("GEMINI_MODEL", "gemini-flash-latest")
 SCRIPT_RULES_PATH = Path(__file__).resolve().parent.parent / "config" / "script_rules.json"
 
 
@@ -331,7 +332,7 @@ async def audit_single_file_with_retry(
 
                 else:
                     response = await client.aio.models.generate_content(
-                        model='gemini-2.5-flash',
+                        model=GEMINI_MODEL,
                         contents=media_context,
                         config=types.GenerateContentConfig(
                             system_instruction=system_instruction,
@@ -453,6 +454,7 @@ async def main(
         max_concurrency = 1
 
     semaphore = asyncio.Semaphore(max_concurrency)
+    logger.info("Using Gemini model: %s", GEMINI_MODEL)
     logger.info(
         "Starting audit [Local=%s | Region=%s] on %d files. Concurrency: %d",
         use_local, region, len(target_files), max_concurrency,
