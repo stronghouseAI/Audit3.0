@@ -1,6 +1,6 @@
 # Asynchronous Compliance Audit Pipeline (Audit 3.0)
 
-An enterprise-grade, asynchronous Python ETL pipeline designed to ingest bulk audio compliance files, evaluate them using the Gemini API structured outputs transcribe each call, and export per-call audit reports plus a batch CSV.
+An enterprise-grade, asynchronous Python ETL pipeline designed to ingest bulk audio compliance files, evaluate them using the Gemini API structured outputs, transcribe each call, and export per-call audit reports plus a batch CSV.
 
 ## 🏗️ System Architecture
 
