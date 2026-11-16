@@ -88,7 +88,7 @@ def ask(
     try:
         client = genai.Client()
         response = client.models.generate_content(
-            model=os.environ.get("GEMINI_MODEL", "gemini-flash-latest"),
+            model=os.environ.get("GEMINI_MODEL", "gemini-3.5-flash"),
             contents=question,
         )
         console.print(f"\n[bold green]Response:[/bold green]\n{response.text}")

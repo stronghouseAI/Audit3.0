@@ -22,7 +22,7 @@ except ImportError:
 # ==========================================
 LOCAL_MODEL_PATH = Path(__file__).parent.parent.parent / "models" / "supergemma4-26b-q4.gguf"
 PASS_SCORE_THRESHOLD = 8
-GEMINI_MODEL = os.environ.get("GEMINI_MODEL", "gemini-flash-latest")
+GEMINI_MODEL = os.environ.get("GEMINI_MODEL", "gemini-3.5-flash")
 SCRIPT_RULES_PATH = Path(__file__).resolve().parent.parent / "config" / "script_rules.json"
 
 

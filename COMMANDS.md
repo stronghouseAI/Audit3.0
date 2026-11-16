@@ -118,4 +118,4 @@ Type `exit` or `quit` to end the session.
 | Variable | Required By | Description |
 |----------|-------------|-------------|
 | `GEMINI_API_KEY` | `sweep`, `ask`, `chat` (cloud mode) | Google Gemini API key for cloud inference. |
-| `GEMINI_MODEL` | `sweep`, `ask` (optional) | Gemini model name. Defaults to `gemini-flash-latest`. |
+| `GEMINI_MODEL` | `sweep`, `ask` (optional) | Gemini model name. Defaults to `gemini-3.5-flash`. |
