@@ -78,6 +78,10 @@ class QAAuditReport(BaseModel):
     compliance_checklist: List[ChecklistItem]
     phrase_analysis: PhraseAnalysis
     evaluation: CompetenceEvaluation
+    agent_name: str = Field(
+        default="",
+        description="The agent's name as they introduce themselves on the call, or empty if not stated.",
+    )
     transcript: str = Field(
         default="",
         description="Full verbatim transcript of the call, one line per turn, prefixed 'Agent:' or 'Customer:'.",
@@ -113,18 +117,31 @@ def _make_error_report(filename: str, agent_id: str, reason: str) -> QAAuditRepo
     )
 
 
+AUDIO_EXTENSIONS = (".mp3", ".mpeg", ".mp3.mpeg", ".wav", ".m4a")
+
+
 def _parse_agent_info(filename: str) -> tuple[str, str, str]:
     """
     Extract agent_id, phone_number, and call_timestamp from a filename.
-    Matches standard layout: Agent0034_+447411873468_20260526134815_37d9bc.mp3
+    Supports:
+      - Agent0034_+447411873468_20260526134815_37d9bc.mp3
+      - 20261113-115032_7787536564-all.mp3.mpeg   (dialler export: timestamp_phone)
+      - 20261113122744_442045208806_07853844677-all.mp3.mpeg
     """
-    base_name = Path(filename).stem
-    parts = base_name.split('_')
-    
-    agent_id = parts[0] if parts and parts[0] else "Unknown_Agent"
-    phone_number = parts[1] if len(parts) > 1 and parts[1] else "Unknown_Phone"
-    call_timestamp = parts[2] if len(parts) > 2 and parts[2] else "Unknown_Timestamp"
-    
+    base_name = Path(filename).name.split('.')[0]
+    if base_name.endswith('-all'):
+        base_name = base_name[:-4]
+    parts = [p for p in base_name.split('_') if p]
+
+    if parts and len(parts[0]) >= 8 and parts[0][:8].isdigit():
+        # Dialler format: no agent in filename (agent name is taken from the call itself)
+        call_timestamp = parts[0]
+        phone_number = parts[-1] if len(parts) > 1 else "Unknown_Phone"
+        return "Unknown_Agent", phone_number, call_timestamp
+
+    agent_id = parts[0] if parts else "Unknown_Agent"
+    phone_number = parts[1] if len(parts) > 1 else "Unknown_Phone"
+    call_timestamp = parts[2] if len(parts) > 2 else "Unknown_Timestamp"
     return agent_id, phone_number, call_timestamp
 
 
@@ -189,10 +206,10 @@ def _export_local_transcript_txt(input_folder: str, filename: str, agent_id: str
         output_subfolder = Path(input_folder) / "audit_outputs"
         output_subfolder.mkdir(parents=True, exist_ok=True)
         
-        txt_filename = output_subfolder / f"{Path(filename).stem}.txt"
+        txt_filename = output_subfolder / f"{Path(filename).name.split('.')[0]}.txt"
         
         if report.transcript:
-            transcript_file = output_subfolder / f"{Path(filename).stem}_transcript.txt"
+            transcript_file = output_subfolder / f"{Path(filename).name.split('.')[0]}_transcript.txt"
             transcript_file.write_text(report.transcript, encoding="utf-8")
 
         with open(txt_filename, "w", encoding="utf-8") as f:
@@ -276,7 +293,9 @@ async def audit_single_file_with_retry(
                             f"Local pipeline cannot process binary files ({filename}). "
                             "Pre-convert to .txt first."
                         )
-                    audio_file = await client.aio.files.upload(file=full_path)
+                    audio_file = await client.aio.files.upload(
+                        file=full_path, config=types.UploadFileConfig(mime_type="audio/mpeg")
+                    )
                     while audio_file.state.name == "PROCESSING":
                         await asyncio.sleep(3)
                         audio_file = await client.aio.files.get(name=audio_file.name)
@@ -325,6 +344,8 @@ async def audit_single_file_with_retry(
 
                 # ---- Enrich & save ----
                 await _safe_delete_file(client, audio_file)
+                if agent_id == "Unknown_Agent" and report.agent_name.strip():
+                    agent_id = report.agent_name.strip()
                 report = _populate_report_metadata(report, filename, agent_id)
 
                 # 🛠️ EXECUTE LOCAL TXT EXPORT
@@ -420,8 +441,8 @@ async def main(
     if not target_files:
         target_files = [
             os.path.basename(f)
-            for f in glob.glob(os.path.join(input_folder, "*.mp3"))
-            if not os.path.basename(f).startswith('.')
+            for f in glob.glob(os.path.join(input_folder, "*"))
+            if f.lower().endswith(AUDIO_EXTENSIONS) and not os.path.basename(f).startswith('.')
         ]
     if not target_files:
         logger.info("No .txt or .mp3 files found in: %s", input_folder)
@@ -449,6 +470,7 @@ async def main(
 {checklist}
 
     If the input is audio, include a full verbatim transcript in the transcript field.
+    Put the agent's name (as they introduce themselves) in the agent_name field.
     CRITICAL: The evaluation score must be an integer from 1 to 10. Never use a 100-point scale.
     """
 
